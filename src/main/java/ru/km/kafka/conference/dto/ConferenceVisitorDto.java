@@ -1,6 +1,6 @@
 package ru.km.kafka.conference.dto;
 
-import java.util.ArrayList;
+import java.util.List;
 
-public record ConferenceVisitorDto(ArrayList<String> names) {
+public record ConferenceVisitorDto(List<String> names) {
 }

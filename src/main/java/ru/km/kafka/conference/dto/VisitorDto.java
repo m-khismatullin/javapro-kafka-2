@@ -1,4 +1,4 @@
 package ru.km.kafka.conference.dto;
 
-public record VisitorDto(String name, long conferenceId) {
+public record VisitorDto(String name, int conferenceId) {
 }
