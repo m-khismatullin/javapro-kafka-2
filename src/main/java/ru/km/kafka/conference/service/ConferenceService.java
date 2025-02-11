@@ -55,7 +55,7 @@ public class ConferenceService {
         kafkaTemplate.send(topic, visitorDto);
     }
 
-    public ConferenceVisitorDto getNewRegisters(int conferenceId) {
+    synchronized public ConferenceVisitorDto getNewRegisters(int conferenceId) {
         if (!conferenceGroupMap.containsKey(conferenceId)) {
             throw new NotFoundException("Conference " + conferenceId + " not found");
         }
