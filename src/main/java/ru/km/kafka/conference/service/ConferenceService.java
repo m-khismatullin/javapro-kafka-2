@@ -15,7 +15,9 @@ import ru.km.kafka.conference.dto.VisitorDto;
 import ru.km.kafka.conference.exception.NotFoundException;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -26,7 +28,6 @@ public class ConferenceService {
     private final ConcurrentHashMap<Integer, String> conferenceGroupMap = new ConcurrentHashMap<>();
     private final Consumer<String, VisitorDto> consumer;
     private final String topic;
-    private Map<Integer, List<VisitorDto>> data = new HashMap<>();
 
     private ConferenceService(
             KafkaTemplate<String, VisitorDto> kafkaTemplate,
@@ -54,24 +55,24 @@ public class ConferenceService {
         kafkaTemplate.send(topic, visitorDto);
     }
 
-    synchronized public ConferenceVisitorDto getNewRegisters(int conferenceId) {
+    public ConferenceVisitorDto getNewRegisters(int conferenceId) {
         if (!conferenceGroupMap.containsKey(conferenceId)) {
             throw new NotFoundException("Conference " + conferenceId + " not found");
         }
 
-        ConsumerRecords<String, VisitorDto> records = consumer.poll(Duration.ofSeconds(1));
+        Set<String> names = new HashSet<>();
+
+        ConsumerRecords<String, VisitorDto> records = consumer.poll(Duration.ofSeconds(10));
         for (ConsumerRecord<String, VisitorDto> record : records) {
-            data.putIfAbsent(record.value().conferenceId(), new ArrayList<>());
-            data.get(record.value().conferenceId()).add(record.value());
+            if (record.value().conferenceId() == conferenceId) {
+                names.add(record.value().name());
+            } else {
+                kafkaTemplate.send(topic, record.value());
+            }
         }
 
-        logger.debug("all data:{}", data);
+        logger.debug("all names for conferenceId = {} : {}", conferenceId, names);
 
-        if (!data.containsKey(conferenceId)) {
-            return new ConferenceVisitorDto(Collections.emptyList());
-        } else {
-            List<VisitorDto> conferenceVisitorList = data.put(conferenceId, new ArrayList<>());
-            return new ConferenceVisitorDto(conferenceVisitorList.stream().map(VisitorDto::name).toList());
-        }
+        return new ConferenceVisitorDto(names.stream().toList());
     }
 }
